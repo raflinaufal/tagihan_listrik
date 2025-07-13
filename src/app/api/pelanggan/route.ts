@@ -12,7 +12,7 @@ export async function GET() {
         tagihan: true,
         pembayaran: true
       },
-      orderBy: { nama_pelanggan: 'asc' }
+      orderBy: { id_pelanggan: 'desc' } // ubah dari nama_pelanggan: 'asc' ke id_pelanggan: 'desc'
     });
     
     // Transform data to match frontend expectations

@@ -8,6 +8,9 @@ import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Users, Zap, User, Plus, Edit, Trash2 } from 'lucide-react'
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { useDispatch } from 'react-redux'
 
 interface Pelanggan {
   id_pelanggan: number
@@ -25,9 +28,22 @@ export default function PelangganPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const router = useRouter()
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [tarifList, setTarifList] = useState([])
+  const [form, setForm] = useState({
+    username: '',
+    password: '',
+    nama_pelanggan: '',
+    alamat: '',
+    nomor_kwh: '',
+    id_tarif: ''
+  })
+  const [formError, setFormError] = useState('')
+  const dispatch = useDispatch()
 
   useEffect(() => {
     fetchPelanggan()
+    fetchTarif()
   }, [])
 
   const fetchPelanggan = async () => {
@@ -43,6 +59,16 @@ export default function PelangganPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const fetchTarif = async () => {
+    try {
+      const res = await fetch('/api/tarif')
+      if (res.ok) {
+        const data = await res.json()
+        setTarifList(data)
+      }
+    } catch {}
   }
 
   const handleDelete = async (id_pelanggan: number) => {
@@ -65,6 +91,39 @@ export default function PelangganPage() {
     } catch (error) {
       console.error('Error deleting pelanggan:', error)
       setError('Terjadi kesalahan koneksi')
+    }
+  }
+
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setForm({ ...form, [e.target.name]: e.target.value })
+  }
+
+  const handleAddPelanggan = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setFormError('')
+    // Validasi sederhana
+    if (!form.username || !form.password || !form.nama_pelanggan || !form.nomor_kwh || !form.id_tarif) {
+      setFormError('Semua field wajib diisi')
+      return
+    }
+    try {
+      // Pastikan id_tarif dikirim sebagai integer
+      const payload = { ...form, id_tarif: Number(form.id_tarif) }
+      const res = await fetch('/api/pelanggan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setFormError(data.error || 'Gagal menambah pelanggan')
+        return
+      }
+      setShowAddModal(false)
+      setForm({ username: '', password: '', nama_pelanggan: '', alamat: '', nomor_kwh: '', id_tarif: '' })
+      dispatch(fetchPelanggan())
+    } catch {
+      setFormError('Terjadi kesalahan koneksi')
     }
   }
 
@@ -156,10 +215,41 @@ export default function PelangganPage() {
                     Informasi lengkap data pelanggan listrik
                   </CardDescription>
                 </div>
-                <Button onClick={() => router.push('/admin/pelanggan/tambah')}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Tambah Pelanggan
-                </Button>
+                <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+                  <DialogTrigger asChild>
+                    <Button onClick={() => setShowAddModal(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Tambah Pelanggan
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Tambah Pelanggan</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleAddPelanggan}>
+                      <div className="space-y-3">
+                        <Input name="username" placeholder="Username" value={form.username} onChange={handleFormChange} required />
+                        <Input name="password" type="password" placeholder="Password" value={form.password} onChange={handleFormChange} required />
+                        <Input name="nama_pelanggan" placeholder="Nama Pelanggan" value={form.nama_pelanggan} onChange={handleFormChange} required />
+                        <Input name="alamat" placeholder="Alamat" value={form.alamat} onChange={handleFormChange} />
+                        <Input name="nomor_kwh" placeholder="Nomor KWH" value={form.nomor_kwh} onChange={handleFormChange} required />
+                        <select name="id_tarif" value={form.id_tarif} onChange={handleFormChange} required className="w-full border rounded p-2">
+                          <option value="">Pilih Daya & Tarif</option>
+                          {tarifList.map((t) => (
+                            <option key={t.id_tarif} value={t.id_tarif}>{t.daya} VA - Rp {Number(t.tarifperkwh).toLocaleString('id-ID')}</option>
+                          ))}
+                        </select>
+                        {formError && <div className="text-red-600 text-sm">{formError}</div>}
+                      </div>
+                      <DialogFooter className="mt-4">
+                        <Button type="submit">Simpan</Button>
+                        <DialogClose asChild>
+                          <Button type="button" variant="outline">Batal</Button>
+                        </DialogClose>
+                      </DialogFooter>
+                    </form>
+                  </DialogContent>
+                </Dialog>
               </div>
             </CardHeader>
             <CardContent>
