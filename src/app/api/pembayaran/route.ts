@@ -1,9 +1,14 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-// GET semua pembayaran beserta relasi
+// GET semua pembayaran beserta relasi (hanya yang sudah bayar)
 export async function GET() {
   const data = await prisma.pembayaran.findMany({
+    where: {
+      tagihan: {
+        status: 'sudah_bayar'
+      }
+    },
     include: {
       tagihan: true,
       pelanggan: { include: { tarif: true } },
