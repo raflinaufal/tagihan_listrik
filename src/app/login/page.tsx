@@ -238,18 +238,6 @@ export default function LoginPage() {
                 )}
               </Button>
             </form>
-
-            <div className="pt-6 border-t border-gray-200">
-              <div className="text-center">
-                <p className="text-sm font-medium text-gray-600 mb-2">
-                  Demo Account
-                </p>
-                <div className="space-y-1 text-xs text-gray-500">
-                  <p><strong>Admin:</strong> admin / password123</p>
-                  <p><strong>Pelanggan:</strong> john_doe / password123</p>
-                </div>
-              </div>
-            </div>
           </CardContent>
         </Card>
       </div>
