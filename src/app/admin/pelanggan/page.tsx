@@ -7,10 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Users, Zap, User, Plus, Edit, Trash2 } from 'lucide-react'
+import { Users, Zap, User, Plus, Edit, Trash2, Search, Filter } from 'lucide-react'
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { useDispatch } from 'react-redux'
+import { Badge } from '@/components/ui/badge'
 
 interface Pelanggan {
   id_pelanggan: number
@@ -52,13 +53,13 @@ export default function PelangganPage() {
     id_tarif: ''
   })
   const [editFormError, setEditFormError] = useState('')
-  // Tambah state untuk alert sukses
   const [tableAlert, setTableAlert] = useState('')
   const [tableAlertType, setTableAlertType] = useState<'success' | 'error' | 'warning'>('success')
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deletePelangganId, setDeletePelangganId] = useState<number | null>(null)
   const [deleteError, setDeleteError] = useState('')
   const [deleteSuccess, setDeleteSuccess] = useState('')
+  const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
     fetchPelanggan()
@@ -246,7 +247,6 @@ export default function PelangganPage() {
     setShowDeleteModal(true)
   }
 
-  // Reset state saat modal ditutup
   const handleDeleteModalChange = (open: boolean) => {
     setShowDeleteModal(open)
     if (!open) {
@@ -284,7 +284,6 @@ export default function PelangganPage() {
     }
   }
 
-  // Fungsi untuk menentukan varian alert
   const getAlertVariant = () => {
     if (tableAlertType === 'success') return 'success';
     if (tableAlertType === 'warning') return 'warning';
@@ -292,14 +291,26 @@ export default function PelangganPage() {
     return undefined;
   };
 
+  const filteredPelanggan = pelanggan.filter(item =>
+    item.nama_pelanggan.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.nomor_kwh.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.alamat?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <AdminSidebar onLogout={handleLogout} />
+      
+      {/* Main Content */}
       <main className="flex-1 lg:pl-64">
-        <div className="px-4 sm:px-6 lg:px-8 py-8">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Data Pelanggan</h1>
-            <p className="text-gray-600 mt-2">Informasi lengkap data pelanggan listrik</p>
+        {/* Mobile Header Spacer */}
+        <div className="lg:hidden h-16"></div>
+        
+        <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+          {/* Header */}
+          <div className="mb-6 sm:mb-8">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Data Pelanggan</h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-2">Informasi lengkap data pelanggan listrik</p>
           </div>
 
           {error && (
@@ -317,153 +328,219 @@ export default function PelangganPage() {
           )}
 
           {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <Card>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+            <Card className="hover:shadow-md transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Pelanggan</CardTitle>
                 <Users className="h-4 w-4 text-blue-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-blue-600">{pelanggan.length}</div>
+                <div className="text-xl sm:text-2xl font-bold text-blue-600">{pelanggan.length}</div>
+                <p className="text-xs text-gray-500 mt-1">Pelanggan terdaftar</p>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="hover:shadow-md transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Rata-rata Daya</CardTitle>
                 <Zap className="h-4 w-4 text-green-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">
+                <div className="text-xl sm:text-2xl font-bold text-green-600">
                   {getRataRataDaya()} VA
                 </div>
+                <p className="text-xs text-gray-500 mt-1">Daya rata-rata</p>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="hover:shadow-md transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Tarif</CardTitle>
                 <User className="h-4 w-4 text-purple-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-purple-600">
+                <div className="text-xl sm:text-2xl font-bold text-purple-600">
                   {formatCurrency(getTotalTarif())}
                 </div>
+                <p className="text-xs text-gray-500 mt-1">Total tarif</p>
               </CardContent>
             </Card>
+          </div>
+
+          {/* Search and Actions */}
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Cari pelanggan..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Dialog open={showAddModal} onOpenChange={(open) => {
+              setShowAddModal(open)
+              if (!open) {
+                setFormError('')
+                setTableAlert('')
+              }
+            }}>
+              <DialogTrigger asChild>
+                <Button className="w-full sm:w-auto">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Tambah Pelanggan
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Tambah Pelanggan</DialogTitle>
+                  <DialogDescription>Isi data pelanggan dengan benar.</DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleAddPelanggan}>
+                  <div className="space-y-3">
+                    {formError && <Alert variant="destructive"><AlertDescription>{formError}</AlertDescription></Alert>}
+                    <Input name="username" placeholder="Username" value={form.username} onChange={handleFormChange} required />
+                    <Input name="password" type="password" placeholder="Password" value={form.password} onChange={handleFormChange} required />
+                    <Input name="nama_pelanggan" placeholder="Nama Pelanggan" value={form.nama_pelanggan} onChange={handleFormChange} required />
+                    <Input name="alamat" placeholder="Alamat" value={form.alamat} onChange={handleFormChange} />
+                    <Input name="nomor_kwh" placeholder="Nomor KWH" value={form.nomor_kwh} onChange={handleFormChange} required />
+                    <select name="id_tarif" value={form.id_tarif} onChange={handleFormChange} required className="w-full border rounded p-2">
+                      <option value="">Pilih Daya & Tarif</option>
+                      {tarifList.map((t) => (
+                        <option key={t.id_tarif} value={t.id_tarif}>{t.daya} VA - Rp {Number(t.tarifperkwh).toLocaleString('id-ID')}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <DialogFooter className="mt-4">
+                    <Button type="submit">Simpan</Button>
+                    <DialogClose asChild>
+                      <Button type="button" variant="outline">Batal</Button>
+                    </DialogClose>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
           </div>
 
           {/* DataTable Pelanggan */}
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                   <CardTitle className="text-xl">Daftar Pelanggan</CardTitle>
                   <CardDescription>
                     Informasi lengkap data pelanggan listrik
                   </CardDescription>
                 </div>
-                <Dialog open={showAddModal} onOpenChange={(open) => {
-                  setShowAddModal(open)
-                  if (!open) {
-                    setFormError('')
-                    setTableAlert('')
-                  }
-                }}>
-                  <DialogTrigger asChild>
-                    <Button onClick={() => setShowAddModal(true)}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Tambah Pelanggan
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Tambah Pelanggan</DialogTitle>
-                      <DialogDescription>Isi data pelanggan dengan benar.</DialogDescription>
-                    </DialogHeader>
-                    <form onSubmit={handleAddPelanggan}>
-                      <div className="space-y-3">
-                        {formError && <Alert variant="destructive"><AlertDescription>{formError}</AlertDescription></Alert>}
-                        <Input name="username" placeholder="Username" value={form.username} onChange={handleFormChange} required />
-                        <Input name="password" type="password" placeholder="Password" value={form.password} onChange={handleFormChange} required />
-                        <Input name="nama_pelanggan" placeholder="Nama Pelanggan" value={form.nama_pelanggan} onChange={handleFormChange} required />
-                        <Input name="alamat" placeholder="Alamat" value={form.alamat} onChange={handleFormChange} />
-                        <Input name="nomor_kwh" placeholder="Nomor KWH" value={form.nomor_kwh} onChange={handleFormChange} required />
-                        <select name="id_tarif" value={form.id_tarif} onChange={handleFormChange} required className="w-full border rounded p-2">
-                          <option value="">Pilih Daya & Tarif</option>
-                          {tarifList.map((t) => (
-                            <option key={t.id_tarif} value={t.id_tarif}>{t.daya} VA - Rp {Number(t.tarifperkwh).toLocaleString('id-ID')}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <DialogFooter className="mt-4">
-                        <Button type="submit">Simpan</Button>
-                        <DialogClose asChild>
-                          <Button type="button" variant="outline">Batal</Button>
-                        </DialogClose>
-                      </DialogFooter>
-                    </form>
-                  </DialogContent>
-                </Dialog>
+                <div className="text-sm text-gray-500">
+                  {filteredPelanggan.length} dari {pelanggan.length} pelanggan
+                </div>
               </div>
             </CardHeader>
             <CardContent>
               {loading ? (
                 <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <div className="flex flex-col items-center space-y-4">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <p className="text-gray-600">Memuat data...</p>
+                  </div>
                 </div>
               ) : (
                 <div className="rounded-lg border overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-gray-50">
-                        <TableHead className="font-semibold">Nama Pelanggan</TableHead>
-                        <TableHead className="font-semibold">Alamat</TableHead>
-                        <TableHead className="font-semibold">No. KWH</TableHead>
-                        <TableHead className="font-semibold">Daya</TableHead>
-                        <TableHead className="font-semibold">Tarif/KWH</TableHead>
-                        <TableHead className="font-semibold">Aksi</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {pelanggan.map((item) => (
-                        <TableRow key={item.id_pelanggan} className="hover:bg-gray-50">
-                          <TableCell className="font-medium">
-                            {item.nama_pelanggan}
-                          </TableCell>
-                          <TableCell>{item.alamat}</TableCell>
-                          <TableCell>{item.nomor_kwh}</TableCell>
-                          <TableCell>
-                            {item.tarif?.daya ? `${item.tarif.daya} VA` : 'N/A'}
-                          </TableCell>
-                          <TableCell>
-                            {formatCurrency(item.tarif?.tarifperkwh)}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex space-x-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => openEditModal(item)}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => openDeleteModal(item.id_pelanggan)}
-                                className="text-red-600 hover:text-red-700"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
+                  {/* Desktop Table */}
+                  <div className="hidden lg:block">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-gray-50">
+                          <TableHead className="font-semibold">Nama Pelanggan</TableHead>
+                          <TableHead className="font-semibold">Alamat</TableHead>
+                          <TableHead className="font-semibold">No. KWH</TableHead>
+                          <TableHead className="font-semibold">Daya</TableHead>
+                          <TableHead className="font-semibold">Tarif/KWH</TableHead>
+                          <TableHead className="font-semibold">Aksi</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredPelanggan.map((item) => (
+                          <TableRow key={item.id_pelanggan} className="hover:bg-gray-50">
+                            <TableCell className="font-medium">
+                              {item.nama_pelanggan}
+                            </TableCell>
+                            <TableCell>{item.alamat}</TableCell>
+                            <TableCell>{item.nomor_kwh}</TableCell>
+                            <TableCell>
+                              {item.tarif?.daya ? `${item.tarif.daya} VA` : 'N/A'}
+                            </TableCell>
+                            <TableCell>
+                              {formatCurrency(item.tarif?.tarifperkwh)}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex space-x-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => openEditModal(item)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => openDeleteModal(item.id_pelanggan)}
+                                  className="text-red-600 hover:text-red-700"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Mobile Cards */}
+                  <div className="lg:hidden">
+                    {filteredPelanggan.map((item) => (
+                      <div key={item.id_pelanggan} className="border-b border-gray-200 p-4 hover:bg-gray-50">
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex-1">
+                            <h3 className="font-medium text-gray-900">{item.nama_pelanggan}</h3>
+                            <p className="text-sm text-gray-600 mt-1">{item.alamat}</p>
+                            <p className="text-sm text-gray-500 mt-1">No. KWH: {item.nomor_kwh}</p>
+                          </div>
+                          <div className="flex space-x-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => openEditModal(item)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => openDeleteModal(item.id_pelanggan)}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <Badge variant="secondary">
+                            {item.tarif?.daya ? `${item.tarif.daya} VA` : 'N/A'}
+                          </Badge>
+                          <Badge variant="outline">
+                            {formatCurrency(item.tarif?.tarifperkwh)}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </CardContent>
           </Card>
+
           {/* Modal Edit Pelanggan */}
           <Dialog open={showEditModal} onOpenChange={(open) => {
             setShowEditModal(open)
@@ -472,7 +549,7 @@ export default function PelangganPage() {
               setTableAlert('')
             }
           }}>
-            <DialogContent>
+            <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Edit Pelanggan</DialogTitle>
                 <DialogDescription>Edit data pelanggan sesuai kebutuhan.</DialogDescription>
@@ -501,6 +578,7 @@ export default function PelangganPage() {
               </form>
             </DialogContent>
           </Dialog>
+
           {/* Modal Konfirmasi Hapus */}
           <Dialog open={showDeleteModal} onOpenChange={handleDeleteModalChange}>
             <DialogContent>
