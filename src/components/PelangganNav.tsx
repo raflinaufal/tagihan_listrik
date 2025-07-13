@@ -27,6 +27,7 @@ export default function PelangganNav() {
       <aside className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-64 lg:flex-col bg-gradient-to-b from-blue-500 to-indigo-500 text-white">
         <div className="flex grow flex-col gap-y-5 overflow-y-auto px-6 pb-4">
           <div className="flex h-16 items-center">
+            <Zap className="h-7 w-7 text-yellow-300 mr-2" />
             <h1 className="text-xl font-bold tracking-wide">Sistem Listrik</h1>
           </div>
           <nav className="flex flex-1 flex-col">

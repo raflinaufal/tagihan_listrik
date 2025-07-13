@@ -180,7 +180,7 @@ export default function ProfilePage() {
                 </div>
                 {/* Info Card */}
                 <div className="grid grid-cols-1 gap-3 mt-6">
-                  <div className="bg-blue-50 rounded-lg p-3 flex items-center gap-2">
+                  <div className="bg-gray-50 rounded-lg p-3 flex items-center gap-2">
                     <User className="h-5 w-5 text-blue-600" />
                     <span className="font-semibold">{pelanggan.nama_pelanggan}</span>
                   </div>
@@ -188,7 +188,7 @@ export default function ProfilePage() {
                     <span className="inline-block w-5 text-center">🏠</span>
                     <span>Alamat: {pelanggan.alamat || '-'}</span>
                   </div>
-                  <div className="bg-green-50 rounded-lg p-3 flex items-center gap-2 text-gray-700">
+                  <div className="bg-gray-50 rounded-lg p-3 flex items-center gap-2 text-gray-700">
                     <span className="inline-block w-5 text-center">🔌</span>
                     <span>No. KWH: {pelanggan.nomor_kwh}</span>
                   </div>

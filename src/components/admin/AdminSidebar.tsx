@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Users, BarChart2, FileText, LogOut, CreditCard, Menu, X } from 'lucide-react'
+import { Home, Users, BarChart2, FileText, LogOut, CreditCard, Menu, X, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useState } from 'react'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
@@ -77,6 +77,7 @@ export default function AdminSidebar({ onLogout }: AdminSidebarProps) {
       <aside className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-64 lg:flex-col bg-gradient-to-b from-blue-500 to-indigo-500 text-white">
         <div className="flex grow flex-col gap-y-5 overflow-y-auto px-6 pb-4">
           <div className="flex h-16 items-center">
+            <Zap className="h-7 w-7 text-yellow-300 mr-2" />
             <h1 className="text-xl font-bold tracking-wide">Sistem Listrik</h1>
           </div>
           <NavLinks />
@@ -87,6 +88,7 @@ export default function AdminSidebar({ onLogout }: AdminSidebarProps) {
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 px-4 py-3">
         <div className="flex items-center justify-between">
           <h1 className="text-lg font-bold text-gray-900">Sistem Listrik</h1>
+          <Zap className="h-6 w-6 text-yellow-400 ml-2" />
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="sm" className="lg:hidden">
@@ -97,6 +99,7 @@ export default function AdminSidebar({ onLogout }: AdminSidebarProps) {
               <div className="flex grow flex-col gap-y-5 overflow-y-auto px-6 pb-4 h-full">
                 <div className="flex h-16 items-center justify-between">
                   <h1 className="text-xl font-bold tracking-wide text-white">Sistem Listrik</h1>
+                  <Zap className="h-7 w-7 text-yellow-300 ml-2" />
                   <Button
                     variant="ghost"
                     size="sm"
