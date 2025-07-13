@@ -1,0 +1,101 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model level {
+  id_level   Int    @id @default(autoincrement())
+  nama_level String @db.VarChar(50)
+  users      user[]
+}
+
+model user {
+  id_user    Int          @id @default(autoincrement())
+  username   String       @unique @db.VarChar(50)
+  password   String       @db.VarChar(255)
+  nama_admin String?      @db.VarChar(100)
+  id_level   Int?
+  pembayaran pembayaran[]
+  level      level?       @relation(fields: [id_level], references: [id_level])
+
+  @@index([id_level], map: "user_id_level_fkey")
+}
+
+model tarif {
+  id_tarif    Int         @id @default(autoincrement())
+  daya        Int
+  tarifperkwh Decimal     @db.Decimal(10, 2)
+  pelanggan   pelanggan[]
+}
+
+model pelanggan {
+  id_pelanggan   Int          @id @default(autoincrement())
+  username       String       @unique @db.VarChar(50)
+  password       String       @db.VarChar(255)
+  nomor_kwh      String       @unique @db.VarChar(20)
+  nama_pelanggan String?      @db.VarChar(100)
+  alamat         String?
+  id_tarif       Int?
+  tarif          tarif?       @relation(fields: [id_tarif], references: [id_tarif])
+  pembayaran     pembayaran[]
+  penggunaan     penggunaan[]
+  tagihan        tagihan[]
+
+  @@index([id_tarif], map: "pelanggan_id_tarif_fkey")
+}
+
+model penggunaan {
+  id_penggunaan Int        @id @default(autoincrement())
+  id_pelanggan  Int?
+  bulan         String     @db.VarChar(10)
+  tahun         Int        @db.Year
+  meter_awal    Int
+  meter_ahir    Int
+  pelanggan     pelanggan? @relation(fields: [id_pelanggan], references: [id_pelanggan])
+  tagihan       tagihan[]
+
+  @@index([id_pelanggan], map: "penggunaan_id_pelanggan_fkey")
+}
+
+model tagihan {
+  id_tagihan    Int           @id @default(autoincrement())
+  id_penggunaan Int?
+  id_pelanggan  Int?
+  bulan         String        @db.VarChar(10)
+  tahun         Int           @db.Year
+  jumlah_meter  Int
+  status        StatusTagihan @default(belum_bayar)
+  pembayaran    pembayaran[]
+  pelanggan     pelanggan?    @relation(fields: [id_pelanggan], references: [id_pelanggan])
+  penggunaan    penggunaan?   @relation(fields: [id_penggunaan], references: [id_penggunaan])
+
+  @@index([id_pelanggan], map: "tagihan_id_pelanggan_fkey")
+  @@index([id_penggunaan], map: "tagihan_id_penggunaan_fkey")
+}
+
+model pembayaran {
+  id_pembayaran      Int        @id @default(autoincrement())
+  id_tagihan         Int?
+  id_pelanggan       Int?
+  tanggal_pembayaran DateTime?
+  bulan_bayar        String?    @db.VarChar(10)
+  biaya_admin        Decimal?   @db.Decimal(10, 2)
+  total_bayar        Decimal?   @db.Decimal(10, 2)
+  id_user            Int?
+  pelanggan          pelanggan? @relation(fields: [id_pelanggan], references: [id_pelanggan])
+  tagihan            tagihan?   @relation(fields: [id_tagihan], references: [id_tagihan])
+  user               user?      @relation(fields: [id_user], references: [id_user])
+
+  @@index([id_pelanggan], map: "pembayaran_id_pelanggan_fkey")
+  @@index([id_tagihan], map: "pembayaran_id_tagihan_fkey")
+  @@index([id_user], map: "pembayaran_id_user_fkey")
+}
+
+enum StatusTagihan {
+  belum_bayar
+  sudah_bayar
+}
