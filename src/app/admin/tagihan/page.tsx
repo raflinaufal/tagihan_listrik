@@ -167,10 +167,6 @@ export default function TagihanPage() {
                     Kelola status pembayaran tagihan listrik
                   </CardDescription>
                 </div>
-                <Button onClick={() => router.push('/admin/penggunaan/tambah')}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Tambah Penggunaan
-                </Button>
               </div>
             </CardHeader>
             <CardContent>

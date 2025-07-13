@@ -1,14 +1,15 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Users, BarChart2, FileText, Settings, LogOut, Plus, Edit, Trash2 } from 'lucide-react'
+import { Home, Users, BarChart2, FileText, LogOut, CreditCard } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 const navigation = [
   { name: 'Dashboard', href: '/admin/dashboard', icon: Home },
   { name: 'Pelanggan', href: '/admin/pelanggan', icon: Users },
   { name: 'Penggunaan', href: '/admin/penggunaan', icon: BarChart2 },
+  { name: 'Tarif', href: '/admin/tarif', icon: FileText },
   { name: 'Tagihan', href: '/admin/tagihan', icon: FileText },
-  { name: 'Pembayaran', href: '/admin/pembayaran', icon: FileText },
+  { name: 'Pembayaran', href: '/admin/pembayaran', icon: CreditCard },
 ]
 
 interface AdminSidebarProps {
@@ -33,6 +34,9 @@ export default function AdminSidebar({ onLogout }: AdminSidebarProps) {
                     {idx === 1 && (
                       <div className="uppercase text-xs font-bold text-blue-200 mb-2 mt-6 tracking-widest">Manajemen</div>
                     )}
+                    {idx === 4 && (
+                      <div className="uppercase text-xs font-bold text-blue-200 mb-2 mt-6 tracking-widest">Keuangan</div>
+                    )}
                     <Link
                       href={item.href}
                       className={`group flex items-center gap-x-3 rounded-lg px-3 py-2 text-base font-medium transition-all duration-200 ${
@@ -48,34 +52,8 @@ export default function AdminSidebar({ onLogout }: AdminSidebarProps) {
                 ))}
               </ul>
             </li>
-            
-            {/* Quick Actions */}
-            <li>
-              <div className="uppercase text-xs font-bold text-blue-200 mb-2 mt-6 tracking-widest">Quick Actions</div>
-              <ul role="list" className="space-y-1">
-                <li>
-                  <Link
-                    href="/admin/pelanggan/tambah"
-                    className="group flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-medium text-blue-100 hover:bg-white/10 hover:text-white transition-all duration-200"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Tambah Pelanggan
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/admin/penggunaan/tambah"
-                    className="group flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-medium text-blue-100 hover:bg-white/10 hover:text-white transition-all duration-200"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Input Penggunaan
-                  </Link>
-                </li>
-              </ul>
-            </li>
           </ul>
         </nav>
-        
         {/* Logout Button */}
         <div className="mt-auto">
           <Button
