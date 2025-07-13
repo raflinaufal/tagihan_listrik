@@ -82,7 +82,7 @@ export default function LoginPage() {
       }
 
       // Login berhasil
-      setSuccess('Login berhasil! Mengalihkan...')
+      setSuccess('Login berhasil!')
       
       // Redirect berdasarkan role setelah delay singkat
       setTimeout(() => {

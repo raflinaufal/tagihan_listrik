@@ -65,7 +65,7 @@ export default function PelangganNav() {
       </aside>
 
       {/* Bottom Navbar Mobile/Tablet */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t z-40 flex justify-around items-center py-2 flex lg:hidden">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t z-40 flex justify-around items-center py-2 flex lg:hidden shadow-[0_-2px_8px_0_rgba(0,0,0,0.04)]">
         {navItems.map((item) => {
           const active = pathname === item.href;
           const Icon = item.icon;
@@ -73,23 +73,16 @@ export default function PelangganNav() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center px-2 py-1 rounded-md transition-all duration-150 ${
-                active ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'
-              }`}
+              className={`flex flex-col items-center px-3 py-2 rounded-md transition-all duration-150
+                ${active ? 'text-blue-600 font-bold border-t-2 border-blue-600 bg-blue-50' : 'text-gray-600 hover:text-blue-600'}
+              `}
+              style={{ minWidth: 60 }}
             >
-              <Icon className="h-5 w-5 mb-1" />
-              <span className="text-xs font-medium">{item.label}</span>
+              <Icon className="h-6 w-6 mb-1" />
+              <span className="text-xs font-medium leading-tight">{item.label}</span>
             </Link>
           );
         })}
-        {/* Tombol Logout di Bottom Navbar */}
-        <button
-          onClick={handleLogout}
-          className="flex flex-col items-center px-2 py-1 rounded-md text-gray-600 hover:text-red-600 transition-all duration-150"
-        >
-          <LogOut className="h-5 w-5 mb-1" />
-          <span className="text-xs font-medium">Logout</span>
-        </button>
       </nav>
     </>
   );

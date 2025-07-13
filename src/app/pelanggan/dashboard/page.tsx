@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -77,20 +77,9 @@ interface PelangganData {
   }
 }
 
-// Contoh data dummy grafik tagihan per bulan
-const chartData = [
-  { bulan: 'Jan', total: 1 },
-  { bulan: 'Feb', total: 2 },
-  { bulan: 'Mar', total: 1 },
-  { bulan: 'Apr', total: 0 },
-  { bulan: 'Mei', total: 3 },
-  { bulan: 'Jun', total: 2 },
-  { bulan: 'Jul', total: 1 },
-];
-
 export default function DashboardPage() {
   const [penggunaan, setPenggunaan] = useState<Penggunaan[]>([])
-  const [tagihan, setTagihan] = useState<Tagihan[]>([])
+  const [tagihan, setTagihan] = useState<any[]>([]);
   const [pembayaran, setPembayaran] = useState<Pembayaran[]>([])
   const [pelangganData, setPelangganData] = useState<PelangganData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -114,6 +103,10 @@ export default function DashboardPage() {
     fetchPelangganData()
   }, [])
 
+  useEffect(() => {
+    fetchTagihan();
+  }, []);
+
   const fetchPelangganData = async () => {
     try {
       // Fetch pelanggan data
@@ -130,13 +123,6 @@ export default function DashboardPage() {
         setPenggunaan(penggunaanData)
       }
 
-      // Fetch tagihan data
-      const tagihanResponse = await fetch('/api/pelanggan/tagihan')
-      if (tagihanResponse.ok) {
-        const tagihanData = await tagihanResponse.json()
-        setTagihan(tagihanData)
-      }
-
       // Fetch pembayaran data
       const pembayaranResponse = await fetch('/api/pelanggan/pembayaran')
       if (pembayaranResponse.ok) {
@@ -149,6 +135,31 @@ export default function DashboardPage() {
       setLoading(false)
     }
   }
+
+  const fetchTagihan = async () => {
+    try {
+      const response = await fetch('/api/pelanggan/tagihan');
+      if (response.ok) {
+        const data = await response.json();
+        setTagihan(data);
+      }
+    } catch (error) {
+      // handle error
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Proses data tagihan menjadi data grafik per bulan
+  const chartData = useMemo(() => {
+    const monthMap: Record<string, number> = {};
+    tagihan.forEach((item) => {
+      const key = `${item.bulan} ${item.tahun}`;
+      monthMap[key] = (monthMap[key] || 0) + 1;
+    });
+    // Urutkan bulan-tahun
+    return Object.entries(monthMap).map(([bulan, total]) => ({ bulan, total }));
+  }, [tagihan]);
 
   const handleLogout = async () => {
     try {
@@ -215,57 +226,68 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       <PelangganNav />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:pl-64 pb-20 lg:pb-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 lg:pl-64 pb-28 lg:pb-6">
        
 
         {/* Statistik Utama */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-8">
-          <Card className="bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg hover:shadow-xl transition-all duration-200">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Tagihan</CardTitle>
-              <FileText className="h-4 w-4" />
+        <div className="flex flex-col gap-4 my-6 md:grid md:grid-cols-3 md:gap-6">
+          <Card className="bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 rounded-2xl p-0">
+            <CardHeader className="flex flex-row items-center gap-4 space-y-0 pb-2">
+              <div className="bg-white/20 rounded-full p-3 flex items-center justify-center">
+                <FileText className="h-7 w-7" />
+              </div>
+              <div>
+                <CardTitle className="text-base font-semibold">Total Tagihan</CardTitle>
+                <div className="text-2xl font-bold mt-1">{formatCurrency(getTotalTagihan())}</div>
+                <p className="text-xs text-green-100">Total tagihan</p>
+              </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(getTotalTagihan())}</div>
-              <p className="text-xs text-green-100">Total tagihan</p>
-            </CardContent>
           </Card>
-          <Card className="bg-gradient-to-r from-yellow-600 to-orange-600 text-white shadow-lg hover:shadow-xl transition-all duration-200">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Sudah Lunas</CardTitle>
-              <CreditCard className="h-4 w-4" />
+          <Card className="bg-gradient-to-r from-yellow-600 to-orange-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 rounded-2xl p-0">
+            <CardHeader className="flex flex-row items-center gap-4 space-y-0 pb-2">
+              <div className="bg-white/20 rounded-full p-3 flex items-center justify-center">
+                <CreditCard className="h-7 w-7" />
+              </div>
+              <div>
+                <CardTitle className="text-base font-semibold">Sudah Lunas</CardTitle>
+                <div className="text-2xl font-bold mt-1">{getTagihanLunas()}</div>
+                <p className="text-xs text-yellow-100">Tagihan dibayar</p>
+              </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{getTagihanLunas()}</div>
-              <p className="text-xs text-yellow-100">Tagihan dibayar</p>
-            </CardContent>
           </Card>
-          <Card className="bg-gradient-to-r from-red-600 to-pink-600 text-white shadow-lg hover:shadow-xl transition-all duration-200">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Belum Lunas</CardTitle>
-              <AlertTriangle className="h-4 w-4" />
+          <Card className="bg-gradient-to-r from-pink-600 to-rose-500 text-white shadow-lg hover:shadow-xl transition-all duration-200 rounded-2xl p-0">
+            <CardHeader className="flex flex-row items-center gap-4 space-y-0 pb-2">
+              <div className="bg-white/20 rounded-full p-3 flex items-center justify-center">
+                <AlertTriangle className="h-7 w-7" />
+              </div>
+              <div>
+                <CardTitle className="text-base font-semibold">Belum Lunas</CardTitle>
+                <div className="text-2xl font-bold mt-1">{getTagihanBelumLunas()}</div>
+                <p className="text-xs text-pink-100">Menunggu pembayaran</p>
+              </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{getTagihanBelumLunas()}</div>
-              <p className="text-xs text-red-100">Menunggu pembayaran</p>
-            </CardContent>
           </Card>
         </div>
-
-        {/* Grafik Tagihan per Bulan */}
-        <div className="bg-white rounded-xl shadow p-6 mb-8">
-          <h2 className="text-lg font-bold mb-4 text-gray-800">Grafik Tagihan per Bulan</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="bulan" />
-              <YAxis allowDecimals={false} />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="total" fill="#2563eb" name="Jumlah Tagihan" radius={[8,8,0,0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        {/* Chart Tagihan per Bulan */}
+        <Card className="rounded-2xl shadow-md mb-8">
+          <CardHeader>
+            <CardTitle className="text-base font-semibold">Grafik Tagihan per Bulan</CardTitle>
+          </CardHeader>
+          <CardContent className="pb-4">
+            <div className="w-full h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 16, right: 16, left: 0, bottom: 8 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="bulan" />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="total" fill="#2563eb" name="Jumlah Tagihan" radius={[8,8,0,0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
