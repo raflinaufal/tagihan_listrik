@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Users, Zap, User, Plus, Edit, Trash2 } from 'lucide-react'
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog'
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { useDispatch } from 'react-redux'
 
@@ -29,7 +29,7 @@ export default function PelangganPage() {
   const [error, setError] = useState('')
   const router = useRouter()
   const [showAddModal, setShowAddModal] = useState(false)
-  const [tarifList, setTarifList] = useState([])
+  const [tarifList, setTarifList] = useState<any[]>([])
   const [form, setForm] = useState({
     username: '',
     password: '',
@@ -40,6 +40,25 @@ export default function PelangganPage() {
   })
   const [formError, setFormError] = useState('')
   const dispatch = useDispatch()
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editPelanggan, setEditPelanggan] = useState(null)
+  const [editForm, setEditForm] = useState({
+    id_pelanggan: '',
+    username: '',
+    password: '',
+    nama_pelanggan: '',
+    alamat: '',
+    nomor_kwh: '',
+    id_tarif: ''
+  })
+  const [editFormError, setEditFormError] = useState('')
+  // Tambah state untuk alert sukses
+  const [tableAlert, setTableAlert] = useState('')
+  const [tableAlertType, setTableAlertType] = useState<'success' | 'error' | 'warning'>('success')
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deletePelangganId, setDeletePelangganId] = useState<number | null>(null)
+  const [deleteError, setDeleteError] = useState('')
+  const [deleteSuccess, setDeleteSuccess] = useState('')
 
   useEffect(() => {
     fetchPelanggan()
@@ -101,13 +120,12 @@ export default function PelangganPage() {
   const handleAddPelanggan = async (e: React.FormEvent) => {
     e.preventDefault()
     setFormError('')
-    // Validasi sederhana
+    setTableAlert('')
     if (!form.username || !form.password || !form.nama_pelanggan || !form.nomor_kwh || !form.id_tarif) {
       setFormError('Semua field wajib diisi')
       return
     }
     try {
-      // Pastikan id_tarif dikirim sebagai integer
       const payload = { ...form, id_tarif: Number(form.id_tarif) }
       const res = await fetch('/api/pelanggan', {
         method: 'POST',
@@ -116,14 +134,78 @@ export default function PelangganPage() {
       })
       const data = await res.json()
       if (!res.ok) {
-        setFormError(data.error || 'Gagal menambah pelanggan')
+        setTableAlertType('error')
+        setTableAlert(data.message || data.error || 'Gagal menambah pelanggan')
         return
       }
+      setTableAlertType('success')
+      setTableAlert(data.message || 'Pelanggan berhasil ditambahkan!')
       setShowAddModal(false)
       setForm({ username: '', password: '', nama_pelanggan: '', alamat: '', nomor_kwh: '', id_tarif: '' })
-      dispatch(fetchPelanggan())
-    } catch {
-      setFormError('Terjadi kesalahan koneksi')
+      setFormError('')
+      await fetchPelanggan()
+      setTimeout(() => setTableAlert(''), 3000)
+    } catch (error) {
+      setTableAlertType('error')
+      setTableAlert('Terjadi kesalahan koneksi')
+    }
+  }
+
+  const openEditModal = (pelanggan: any) => {
+    setEditPelanggan(pelanggan)
+    setEditForm({
+      id_pelanggan: pelanggan.id_pelanggan,
+      username: pelanggan.username,
+      password: '', // kosongkan, hanya isi jika ingin ganti
+      nama_pelanggan: pelanggan.nama_pelanggan || '',
+      alamat: pelanggan.alamat || '',
+      nomor_kwh: pelanggan.nomor_kwh || '',
+      id_tarif: pelanggan.tarif?.id_tarif || ''
+    })
+    setEditFormError('')
+    setShowEditModal(true)
+  }
+
+  const handleEditFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setEditForm({ ...editForm, [e.target.name]: e.target.value })
+  }
+
+  const handleEditPelanggan = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setEditFormError('')
+    setTableAlert('')
+    if (!editForm.username || !editForm.nama_pelanggan || !editForm.nomor_kwh || !editForm.id_tarif) {
+      setEditFormError('Semua field wajib diisi')
+      return
+    }
+    try {
+      const payload: { [key: string]: any; password?: string } = {
+        ...editForm,
+        id_tarif: Number(editForm.id_tarif),
+        id_pelanggan: Number(editForm.id_pelanggan)
+      }
+      if (!payload.password) delete payload.password
+      const res = await fetch('/api/pelanggan', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setTableAlertType('error')
+        setTableAlert(data.message || data.error || 'Gagal update pelanggan')
+        return
+      }
+      setTableAlertType('success')
+      setTableAlert(data.message || 'Pelanggan berhasil diupdate!')
+      setShowEditModal(false)
+      setEditPelanggan(null)
+      setEditFormError('')
+      await fetchPelanggan()
+      setTimeout(() => setTableAlert(''), 3000)
+    } catch (err) {
+      setTableAlertType('error')
+      setTableAlert('Terjadi kesalahan koneksi')
     }
   }
 
@@ -151,8 +233,64 @@ export default function PelangganPage() {
   }
 
   const getTotalTarif = () => {
-    return pelanggan.reduce((sum, item) => sum + (item.tarif?.tarifperkwh || 0), 0)
+    return pelanggan.reduce((sum, item) => {
+      const tarif = item.tarif?.tarifperkwh;
+      return sum + (typeof tarif === 'number' && !isNaN(tarif) ? tarif : 0);
+    }, 0);
+  };
+
+  const openDeleteModal = (id: number) => {
+    setDeletePelangganId(id)
+    setDeleteError('')
+    setDeleteSuccess('')
+    setShowDeleteModal(true)
   }
+
+  // Reset state saat modal ditutup
+  const handleDeleteModalChange = (open: boolean) => {
+    setShowDeleteModal(open)
+    if (!open) {
+      setDeleteError('')
+      setDeleteSuccess('')
+      setDeletePelangganId(null)
+    }
+  }
+
+  const handleDeleteConfirm = async () => {
+    setDeleteError('')
+    setDeleteSuccess('')
+    setTableAlert('')
+    try {
+      const res = await fetch('/api/pelanggan', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id_pelanggan: deletePelangganId })
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setTableAlertType('error')
+        setTableAlert(data.message || data.error || 'Gagal menghapus pelanggan')
+        return
+      }
+      setTableAlertType('success')
+      setTableAlert(data.message || 'Pelanggan berhasil dihapus!')
+      setDeleteError('')
+      await fetchPelanggan()
+      setShowDeleteModal(false)
+      setTimeout(() => setTableAlert(''), 3000)
+    } catch {
+      setTableAlertType('error')
+      setTableAlert('Terjadi kesalahan koneksi')
+    }
+  }
+
+  // Fungsi untuk menentukan varian alert
+  const getAlertVariant = () => {
+    if (tableAlertType === 'success') return 'success';
+    if (tableAlertType === 'warning') return 'warning';
+    if (tableAlertType === 'error') return 'destructive';
+    return undefined;
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -168,6 +306,14 @@ export default function PelangganPage() {
             <Alert variant="destructive" className="mb-6">
               <AlertDescription>{error}</AlertDescription>
             </Alert>
+          )}
+
+          {tableAlert && (
+            <div className="mb-4">
+              <Alert variant={getAlertVariant()}>
+                <AlertDescription>{tableAlert}</AlertDescription>
+              </Alert>
+            </div>
           )}
 
           {/* Stats */}
@@ -215,7 +361,13 @@ export default function PelangganPage() {
                     Informasi lengkap data pelanggan listrik
                   </CardDescription>
                 </div>
-                <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+                <Dialog open={showAddModal} onOpenChange={(open) => {
+                  setShowAddModal(open)
+                  if (!open) {
+                    setFormError('')
+                    setTableAlert('')
+                  }
+                }}>
                   <DialogTrigger asChild>
                     <Button onClick={() => setShowAddModal(true)}>
                       <Plus className="h-4 w-4 mr-2" />
@@ -225,9 +377,11 @@ export default function PelangganPage() {
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>Tambah Pelanggan</DialogTitle>
+                      <DialogDescription>Isi data pelanggan dengan benar.</DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleAddPelanggan}>
                       <div className="space-y-3">
+                        {formError && <Alert variant="destructive"><AlertDescription>{formError}</AlertDescription></Alert>}
                         <Input name="username" placeholder="Username" value={form.username} onChange={handleFormChange} required />
                         <Input name="password" type="password" placeholder="Password" value={form.password} onChange={handleFormChange} required />
                         <Input name="nama_pelanggan" placeholder="Nama Pelanggan" value={form.nama_pelanggan} onChange={handleFormChange} required />
@@ -239,7 +393,6 @@ export default function PelangganPage() {
                             <option key={t.id_tarif} value={t.id_tarif}>{t.daya} VA - Rp {Number(t.tarifperkwh).toLocaleString('id-ID')}</option>
                           ))}
                         </select>
-                        {formError && <div className="text-red-600 text-sm">{formError}</div>}
                       </div>
                       <DialogFooter className="mt-4">
                         <Button type="submit">Simpan</Button>
@@ -289,14 +442,14 @@ export default function PelangganPage() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => router.push(`/admin/pelanggan/edit/${item.id_pelanggan}`)}
+                                onClick={() => openEditModal(item)}
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => handleDelete(item.id_pelanggan)}
+                                onClick={() => openDeleteModal(item.id_pelanggan)}
                                 className="text-red-600 hover:text-red-700"
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -311,6 +464,65 @@ export default function PelangganPage() {
               )}
             </CardContent>
           </Card>
+          {/* Modal Edit Pelanggan */}
+          <Dialog open={showEditModal} onOpenChange={(open) => {
+            setShowEditModal(open)
+            if (!open) {
+              setEditFormError('')
+              setTableAlert('')
+            }
+          }}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Edit Pelanggan</DialogTitle>
+                <DialogDescription>Edit data pelanggan sesuai kebutuhan.</DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleEditPelanggan}>
+                <div className="space-y-3">
+                  {editFormError && <Alert variant="destructive"><AlertDescription>{editFormError}</AlertDescription></Alert>}
+                  <Input name="username" placeholder="Username" value={editForm.username} onChange={handleEditFormChange} required />
+                  <Input name="password" type="password" placeholder="Password (isi jika ingin ganti)" value={editForm.password} onChange={handleEditFormChange} />
+                  <Input name="nama_pelanggan" placeholder="Nama Pelanggan" value={editForm.nama_pelanggan} onChange={handleEditFormChange} required />
+                  <Input name="alamat" placeholder="Alamat" value={editForm.alamat} onChange={handleEditFormChange} />
+                  <Input name="nomor_kwh" placeholder="Nomor KWH" value={editForm.nomor_kwh} onChange={handleEditFormChange} required />
+                  <select name="id_tarif" value={editForm.id_tarif} onChange={handleEditFormChange} required className="w-full border rounded p-2">
+                    <option value="">Pilih Daya & Tarif</option>
+                    {tarifList.map((t) => (
+                      <option key={t.id_tarif} value={t.id_tarif}>{t.daya} VA - Rp {Number(t.tarifperkwh).toLocaleString('id-ID')}</option>
+                    ))}
+                  </select>
+                </div>
+                <DialogFooter className="mt-4">
+                  <Button type="submit">Simpan</Button>
+                  <DialogClose asChild>
+                    <Button type="button" variant="outline">Batal</Button>
+                  </DialogClose>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+          {/* Modal Konfirmasi Hapus */}
+          <Dialog open={showDeleteModal} onOpenChange={handleDeleteModalChange}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Hapus Pelanggan</DialogTitle>
+                <DialogDescription>Konfirmasi penghapusan pelanggan. Tindakan ini tidak dapat dibatalkan.</DialogDescription>
+              </DialogHeader>
+              <div className="mb-4">Apakah Anda yakin ingin menghapus pelanggan ini? Tindakan ini tidak dapat dibatalkan.</div>
+              {deleteError && !deleteSuccess && (
+                <Alert variant="destructive"><AlertDescription>{deleteError}</AlertDescription></Alert>
+              )}
+              {deleteSuccess && (
+                <Alert className="border-green-200 bg-green-50 text-green-800"><AlertDescription>{deleteSuccess}</AlertDescription></Alert>
+              )}
+              <DialogFooter>
+                <Button variant="destructive" onClick={handleDeleteConfirm}>Hapus</Button>
+                <DialogClose asChild>
+                  <Button type="button" variant="outline">Batal</Button>
+                </DialogClose>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </main>
     </div>
