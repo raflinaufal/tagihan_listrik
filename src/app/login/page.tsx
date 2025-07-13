@@ -7,19 +7,49 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Eye, EyeOff, Zap, User, Lock, AlertCircle } from 'lucide-react'
+import { Eye, EyeOff, Zap, User, Lock, AlertCircle, CheckCircle, Loader2 } from 'lucide-react'
 
 export default function LoginPage() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({})
   const router = useRouter()
+
+  // Validasi form
+  const validateForm = () => {
+    const errors: {[key: string]: string} = {}
+    
+    if (!username.trim()) {
+      errors.username = 'Username wajib diisi'
+    } else if (username.length < 3) {
+      errors.username = 'Username minimal 3 karakter'
+    }
+    
+    if (!password.trim()) {
+      errors.password = 'Password wajib diisi'
+    } else if (password.length < 6) {
+      errors.password = 'Password minimal 6 karakter'
+    }
+    
+    setValidationErrors(errors)
+    return Object.keys(errors).length === 0
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setSuccess('')
+    setValidationErrors({})
+    
+    // Validasi form
+    if (!validateForm()) {
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -34,20 +64,69 @@ export default function LoginPage() {
       const data = await response.json()
 
       if (!response.ok) {
-        setError(data.error || 'Login gagal')
+        // Handle berbagai jenis error
+        let errorMessage = 'Login gagal'
+        
+        if (response.status === 401) {
+          errorMessage = 'Username atau password salah'
+        } else if (response.status === 404) {
+          errorMessage = 'User tidak ditemukan'
+        } else if (response.status === 500) {
+          errorMessage = 'Terjadi kesalahan server'
+        } else if (data.error) {
+          errorMessage = data.error
+        }
+        
+        setError(errorMessage)
         return
       }
 
-      // Redirect berdasarkan role
-      if (data.user.role === 'admin') {
-        router.push('/admin/dashboard')
-      } else {
-        router.push('/pelanggan/dashboard')
-      }
+      // Login berhasil
+      setSuccess('Login berhasil! Mengalihkan...')
+      
+      // Redirect berdasarkan role setelah delay singkat
+      setTimeout(() => {
+        if (data.user.role === 'admin') {
+          router.push('/admin/dashboard')
+        } else {
+          router.push('/pelanggan/dashboard')
+        }
+      }, 1500)
+
     } catch (error) {
-      setError('Terjadi kesalahan koneksi')
+      console.error('Login error:', error)
+      const errorMessage = 'Terjadi kesalahan koneksi. Periksa koneksi internet Anda.'
+      setError(errorMessage)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleInputChange = (field: string, value: string) => {
+    // Clear validation error when user starts typing
+    if (validationErrors[field]) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev }
+        delete newErrors[field]
+        return newErrors
+      })
+    }
+    
+    // Clear success message when user starts typing
+    if (success) {
+      setSuccess('')
+    }
+    
+    // Clear error message when user starts typing
+    if (error) {
+      setError('')
+    }
+    
+    // Update field value
+    if (field === 'username') {
+      setUsername(value)
+    } else if (field === 'password') {
+      setPassword(value)
     }
   }
 
@@ -71,6 +150,15 @@ export default function LoginPage() {
           
           <CardContent className="space-y-6">
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Success Alert */}
+              {success && (
+                <Alert className="border-green-200 bg-green-50 text-green-800">
+                  <CheckCircle className="h-4 w-4" />
+                  <AlertDescription>{success}</AlertDescription>
+                </Alert>
+              )}
+
+              {/* Error Alert */}
               {error && (
                 <Alert variant="destructive" className="border-red-200 bg-red-50">
                   <AlertCircle className="h-4 w-4" />
@@ -88,12 +176,17 @@ export default function LoginPage() {
                     id="username"
                     type="text"
                     value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    className="pl-10 h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                    onChange={(e) => handleInputChange('username', e.target.value)}
+                    className={`pl-10 h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500 ${
+                      validationErrors.username ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''
+                    }`}
                     placeholder="Masukkan username"
                     required
                   />
                 </div>
+                {validationErrors.username && (
+                  <p className="text-sm text-red-600 mt-1">{validationErrors.username}</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -106,8 +199,10 @@ export default function LoginPage() {
                     id="password"
                     type={showPassword ? "text" : "password"}
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 pr-10 h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                    onChange={(e) => handleInputChange('password', e.target.value)}
+                    className={`pl-10 pr-10 h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500 ${
+                      validationErrors.password ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''
+                    }`}
                     placeholder="Masukkan password"
                     required
                   />
@@ -123,17 +218,20 @@ export default function LoginPage() {
                     )}
                   </button>
                 </div>
+                {validationErrors.password && (
+                  <p className="text-sm text-red-600 mt-1">{validationErrors.password}</p>
+                )}
               </div>
 
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
+                className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium shadow-lg transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <div className="flex items-center space-x-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    <span>Loading...</span>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Memproses...</span>
                   </div>
                 ) : (
                   'Login'

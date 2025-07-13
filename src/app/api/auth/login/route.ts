@@ -3,12 +3,42 @@ import { authenticateUser, generateToken } from '@/lib/auth'
 
 export async function POST(request: NextRequest) {
   try {
-    const { username, password } = await request.json()
+    const body = await request.json()
+    const { username, password } = body
 
-    // Validasi input
+    // Validasi input yang lebih detail
     if (!username || !password) {
       return NextResponse.json(
-        { error: 'Username dan password diperlukan' },
+        { 
+          error: 'Username dan password diperlukan',
+          details: {
+            username: !username ? 'Username wajib diisi' : null,
+            password: !password ? 'Password wajib diisi' : null
+          }
+        },
+        { status: 400 }
+      )
+    }
+
+    // Validasi format
+    if (typeof username !== 'string' || typeof password !== 'string') {
+      return NextResponse.json(
+        { error: 'Format data tidak valid' },
+        { status: 400 }
+      )
+    }
+
+    // Validasi panjang minimum
+    if (username.length < 3) {
+      return NextResponse.json(
+        { error: 'Username minimal 3 karakter' },
+        { status: 400 }
+      )
+    }
+
+    if (password.length < 6) {
+      return NextResponse.json(
+        { error: 'Password minimal 6 karakter' },
         { status: 400 }
       )
     }
@@ -52,6 +82,17 @@ export async function POST(request: NextRequest) {
     return response
   } catch (error) {
     console.error('Login error:', error)
+    
+    // Handle specific database errors
+    if (error instanceof Error) {
+      if (error.message.includes('ECONNREFUSED')) {
+        return NextResponse.json(
+          { error: 'Tidak dapat terhubung ke database' },
+          { status: 503 }
+        )
+      }
+    }
+    
     return NextResponse.json(
       { error: 'Terjadi kesalahan server' },
       { status: 500 }
