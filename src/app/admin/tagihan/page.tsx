@@ -9,6 +9,8 @@ import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { FileText, DollarSign, CheckCircle, XCircle, Edit, Trash2, Plus } from 'lucide-react'
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
 
 interface Tagihan {
   id_tagihan: number
@@ -28,6 +30,10 @@ export default function TagihanPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const router = useRouter()
+  const [showBayarModal, setShowBayarModal] = useState(false)
+  const [bayarForm, setBayarForm] = useState({ tanggal_bayar: '', biaya_admin: '', total_bayar: '', id_tagihan: 0, id_pelanggan: 0 })
+  const [bayarError, setBayarError] = useState('')
+  const [bayarSuccess, setBayarSuccess] = useState('')
 
   useEffect(() => {
     fetchTagihan()
@@ -99,6 +105,78 @@ export default function TagihanPage() {
 
   const getTotalTagihan = () => {
     return tagihan.reduce((sum, item) => sum + item.jumlah_meter, 0)
+  }
+
+  // Hitung total bayar (jumlah_meter * tarifperkwh + biaya_admin)
+  // Asumsi tarifperkwh diambil dari API penggunaan atau tarif, di sini dummy 1500
+  const getTotalBayar = (jumlah_meter: number, biaya_admin: string) => {
+    const tarifperkwh = 1500 // TODO: replace with real value if available
+    return jumlah_meter * tarifperkwh + Number(biaya_admin || 0)
+  }
+
+  const openBayarModal = (item: Tagihan) => {
+    setBayarForm({
+      tanggal_bayar: new Date().toISOString().slice(0, 10),
+      biaya_admin: '',
+      total_bayar: getTotalBayar(item.jumlah_meter, '').toString(),
+      id_tagihan: item.id_tagihan,
+      id_pelanggan: item.id_pelanggan
+    })
+    setBayarError('')
+    setBayarSuccess('')
+    setShowBayarModal(true)
+  }
+
+  const handleBayarFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    let newForm = { ...bayarForm, [name]: value }
+    if (name === 'biaya_admin') {
+      newForm.total_bayar = getTotalBayar(
+        tagihan.find(t => t.id_tagihan === bayarForm.id_tagihan)?.jumlah_meter || 0,
+        value
+      ).toString()
+    }
+    setBayarForm(newForm)
+  }
+
+  const handleProsesBayar = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setBayarError('')
+    setBayarSuccess('')
+    if (!bayarForm.tanggal_bayar || !bayarForm.total_bayar) {
+      setBayarError('Tanggal bayar dan total bayar wajib diisi')
+      return
+    }
+    try {
+      // 1. Insert pembayaran
+      const res = await fetch('/api/pembayaran', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id_tagihan: bayarForm.id_tagihan,
+          id_pelanggan: bayarForm.id_pelanggan,
+          tanggal_pembayaran: new Date(bayarForm.tanggal_bayar).toISOString(),
+          biaya_admin: Number(bayarForm.biaya_admin || 0),
+          total_bayar: Number(bayarForm.total_bayar)
+        })
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setBayarError(data.message || data.error || 'Gagal memproses pembayaran')
+        return
+      }
+      // 2. Update status tagihan
+      await fetch('/api/tagihan', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id_tagihan: bayarForm.id_tagihan, status: 'sudah_bayar' })
+      })
+      setBayarSuccess('Pembayaran berhasil!')
+      setShowBayarModal(false)
+      fetchTagihan()
+    } catch (err) {
+      setBayarError('Terjadi kesalahan koneksi')
+    }
   }
 
   return (
@@ -207,24 +285,40 @@ export default function TagihanPage() {
                           <TableCell>
                             <div className="flex space-x-2">
                               {item.status === 'belum_bayar' && (
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleStatusUpdate(item.id_tagihan, 'sudah_bayar')}
-                                  className="bg-green-600 hover:bg-green-700"
-                                >
-                                  <CheckCircle className="h-4 w-4 mr-1" />
-                                  Lunas
-                                </Button>
+                                <Dialog open={showBayarModal} onOpenChange={setShowBayarModal}>
+                                  <DialogTrigger asChild>
+                                    <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => openBayarModal(item)}>
+                                      <CheckCircle className="h-4 w-4 mr-1" />
+                                      Bayar
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent>
+                                    <DialogHeader>
+                                      <DialogTitle>Proses Pembayaran</DialogTitle>
+                                      <DialogDescription>Isi data pembayaran di bawah ini.</DialogDescription>
+                                    </DialogHeader>
+                                    <form onSubmit={handleProsesBayar}>
+                                      <div className="space-y-3">
+                                        {bayarError && <Alert variant="destructive"><AlertDescription>{bayarError}</AlertDescription></Alert>}
+                                        <label htmlFor="tanggal_bayar" className="block text-sm font-medium mb-1">Tanggal Bayar</label>
+                                        <Input id="tanggal_bayar" name="tanggal_bayar" type="date" value={bayarForm.tanggal_bayar} onChange={handleBayarFormChange} required />
+                                        <label htmlFor="biaya_admin" className="block text-sm font-medium mb-1">Biaya Admin</label>
+                                        <Input id="biaya_admin" name="biaya_admin" type="number" placeholder="0" value={bayarForm.biaya_admin} onChange={handleBayarFormChange} />
+                                        <label htmlFor="total_bayar" className="block text-sm font-medium mb-1">Total Bayar</label>
+                                        <Input id="total_bayar" name="total_bayar" type="number" value={bayarForm.total_bayar} readOnly />
+                                      </div>
+                                      <DialogFooter className="mt-4">
+                                        <Button type="submit">Proses Pembayaran</Button>
+                                        <DialogClose asChild>
+                                          <Button type="button" variant="outline">Batal</Button>
+                                        </DialogClose>
+                                      </DialogFooter>
+                                    </form>
+                                  </DialogContent>
+                                </Dialog>
                               )}
                               {item.status === 'sudah_bayar' && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleStatusUpdate(item.id_tagihan, 'belum_bayar')}
-                                >
-                                  <XCircle className="h-4 w-4 mr-1" />
-                                  Belum Lunas
-                                </Button>
+                                <Badge variant="default">Lunas</Badge>
                               )}
                             </div>
                           </TableCell>

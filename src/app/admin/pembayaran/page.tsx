@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { DollarSign, CreditCard, Calendar, User, Plus } from 'lucide-react'
+import { DollarSign, CreditCard, Calendar, User } from 'lucide-react'
 
 interface Pembayaran {
   id_pembayaran: number
@@ -112,40 +112,48 @@ export default function PembayaranPage() {
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <Card>
+            <Card className="min-w-0">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Pembayaran</CardTitle>
                 <CreditCard className="h-4 w-4 text-blue-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-blue-600">{pembayaran.length}</div>
+                <div className="text-lg font-bold text-blue-600 truncate" title={pembayaran.length.toString()}>
+                  {pembayaran.length}
+                </div>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="min-w-0">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Pendapatan</CardTitle>
                 <DollarSign className="h-4 w-4 text-green-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">{formatCurrency(getTotalPendapatan())}</div>
+                <div className="text-lg font-bold text-green-600 truncate" title={formatCurrency(getTotalPendapatan())}>
+                  {formatCurrency(getTotalPendapatan())}
+                </div>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="min-w-0">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Biaya Admin</CardTitle>
                 <User className="h-4 w-4 text-purple-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-purple-600">{formatCurrency(getTotalBiayaAdmin())}</div>
+                <div className="text-lg font-bold text-purple-600 truncate" title={formatCurrency(getTotalBiayaAdmin())}>
+                  {formatCurrency(getTotalBiayaAdmin())}
+                </div>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="min-w-0">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Hari Ini</CardTitle>
                 <Calendar className="h-4 w-4 text-orange-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-orange-600">{getPembayaranHariIni()}</div>
+                <div className="text-lg font-bold text-orange-600 truncate" title={getPembayaranHariIni().toString()}>
+                  {getPembayaranHariIni()}
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -160,10 +168,6 @@ export default function PembayaranPage() {
                     Riwayat pembayaran tagihan listrik
                   </CardDescription>
                 </div>
-                <Button onClick={() => router.push('/admin/tagihan')}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Lihat Tagihan
-                </Button>
               </div>
             </CardHeader>
             <CardContent>
